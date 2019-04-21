@@ -12,6 +12,7 @@
 #include <string>
 #include <stdio.h>
 #include <tchar.h>
+#include <string>
 
 #include "DiskUtils.h"
 #include "Format.h"

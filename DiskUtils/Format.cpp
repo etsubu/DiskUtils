@@ -19,14 +19,6 @@ int formatDrive(std::string drive) {
 		return 0;
 	}
 	DWORD status;
-	if (!DeviceIoControl(hDrive, FSCTL_DISMOUNT_VOLUME,
-		NULL, 0, NULL, 0, &status, NULL))
-	{
-		printf("Failed to dismount drive\n");
-		printError();
-		CloseHandle(hDrive);
-		return 0;
-	}
 
 	// lock volume
 	if (!DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME,

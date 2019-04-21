@@ -84,22 +84,22 @@ void formatTimeCount(long double time) {
 	if (time > 60) {
 		DWORD minutes = ((DWORD)time) / 60;
 		time = time - minutes * 60;
-		printf("%dmin %.2Lfs\n", minutes, time);
+		std::printf("%dmin %.2Lfs\n", minutes, time);
 	}
 	else {
-		printf("%.2Lfs\n", time);
+		std::printf("%.2Lfs\n", time);
 	}
 }
 
-void formatTimeCount(DWORD time) {
+void formatTimeCount(DWORD64 time) {
 	time /= 1000;
 	if (time > 60) {
-		DWORD minutes = time / 60;
+		DWORD64 minutes = time / 60;
 		time = time % 60;
-		printf("Time taken: %dmin %ds\n", minutes, time);
+		std::printf("Time taken: %llumin %llus\n", minutes, time);
 	}
 	else {
-		printf("Time taken: %ds\n", time);
+		std::printf("Time taken: %llus\n", time);
 	}
 }
 
@@ -175,7 +175,7 @@ void formatTimeLeft(DWORD seconds) {
 
 DWORD CALLBACK statusPrint(LPVOID lpParam) {
 	unsigned long long lastWritten=0;
-	DWORD startTime = GetTickCount();
+	DWORD64 startTime = GetTickCount64();
 	while (writtenGlobal < sizeGlobal) {
 		system("cls");
 		long double d = 100 - ((((long double)sizeGlobal - writtenGlobal) / sizeGlobal) * 100);
@@ -186,7 +186,7 @@ DWORD CALLBACK statusPrint(LPVOID lpParam) {
 			formatSpeed(speed);
 			formatTimeLeft(secondsLeft);
 		}
-		printf("%.2Lf %%\n", d);
+		std::printf("%.2Lf %%\n", d);
 		showProgressBar(writtenGlobal, sizeGlobal);
 		Sleep(1000);
 	}
@@ -197,10 +197,10 @@ DWORD CALLBACK statusPrint(LPVOID lpParam) {
 	unsigned long long secondsLeft = (sizeGlobal - lastWritten) / speed;
 	formatSpeed(speed);
 	formatTimeLeft(secondsLeft);
-	printf("%.2Lf %%\n", d);
+	std::printf("%.2Lf %%\n", d);
 	showProgressBar(writtenGlobal, sizeGlobal);
 
-	DWORD end = GetTickCount();
+	DWORD64 end = GetTickCount64();
 	formatTimeCount(end - startTime);
 	return 1;
 }
@@ -214,14 +214,14 @@ int dumpDrive(std::string drive, std::string dumpPath) {
 	HANDLE hDrive = CreateFileA(drive.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hDrive == INVALID_HANDLE_VALUE) {
 		DWORD error = GetLastError();
-		printf("Failed to open drive %s with read access\n", drive.c_str());
+		std::printf("Failed to open drive %s with read access\n", drive.c_str());
 		printError();
 		return 0;
 	}
 	HANDLE hDest = CreateFileA(dumpPath.c_str(), GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hDest == INVALID_HANDLE_VALUE) {
 		DWORD error = GetLastError();
-		printf("Failed to open dump file %s with write access\n", drive.c_str());
+		std::printf("Failed to open dump file %s with write access\n", drive.c_str());
 		printError();
 		return 0;
 	}
@@ -229,19 +229,19 @@ int dumpDrive(std::string drive, std::string dumpPath) {
 	ULONGLONG readTotal = 0;
 	DWORD temp, written;
 	int counter = 0;
-	printf("Dumping drive to: %s ...\n", dumpPath.c_str());
-	DWORD startTime = GetTickCount();
+	std::printf("Dumping drive to: %s ...\n", dumpPath.c_str());
+	DWORD64 startTime = GetTickCount64();
 	while (readTotal < driveSize) {
 		ULONGLONG toRead = min(driveSize - readTotal, sizeof(buffer));
 		if (!ReadFile(hDrive, buffer, toRead, &temp, 0)) {
-			printf("Read from drive failed\n");
+			std::printf("Read from drive failed\n");
 			printError();
 			CloseHandle(hDrive);
 			CloseHandle(hDest);
 			return 0;
 		}
 		if (!WriteFile(hDest, buffer, temp, &written, 0) || written != temp) {
-			printf("Failed to write to dump file!\n");
+			std::printf("Failed to write to dump file!\n");
 			printError();
 			CloseHandle(hDrive);
 			CloseHandle(hDest);
@@ -251,12 +251,12 @@ int dumpDrive(std::string drive, std::string dumpPath) {
 		readTotal += temp;
 		if (counter == 1000) {
 			long double d = 100 - ((((long double)driveSize - readTotal) / driveSize) * 100);
-			printf("%.2Lf %%\n", d);
+			std::printf("%.2Lf %%\n", d);
 			counter = 0;
 		}
 	}
-	printf("100 %%\n");
-	DWORD end = GetTickCount();
+	std::printf("100 %%\n");
+	DWORD64 end = GetTickCount64();
 	long double time = (((long double)end) - startTime);
 	formatTimeCount(time);
 	CloseHandle(hDrive);
@@ -267,70 +267,60 @@ int dumpDrive(std::string drive, std::string dumpPath) {
 int burnDrive(std::string drive, std::string imagePath) {
 	ULONGLONG driveSize = GetDriveSize((char*)drive.c_str());
 	if (!driveSize) {
-		printf("Invalid drive %s\n", drive.c_str());
+		std::printf("Invalid drive %s\n", drive.c_str());
 		return 0;
 	}
 	HANDLE hImage = CreateFileA(imagePath.c_str(), GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hImage == INVALID_HANDLE_VALUE) {
-		printf("Failed to open image file: %s\n", imagePath.c_str());
+		std::printf("Failed to open image file: %s\n", imagePath.c_str());
 		return 0;
 	}
 	LARGE_INTEGER li;
 	if (!GetFileSizeEx(hImage, &li)) {
 		CloseHandle(hImage);
-		printf("Failed to get image size\n");
+		std::printf("Failed to get image size\n");
 		return 0;
 	}
 	if (driveSize < li.QuadPart) {
 		CloseHandle(hImage);
-		printf("Image won't fit in the drive\n");
+		std::printf("Image won't fit in the drive\n");
 		return 0;
 	}
 	//Open the drive for write
 	HANDLE hDrive = CreateFileA(drive.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hDrive == INVALID_HANDLE_VALUE) {
 		DWORD error = GetLastError();
-		printf("Failed to open drive %s with write access", drive.c_str());
+		std::printf("Failed to open drive %s with write access", drive.c_str());
 		printError();
 		return 0;
 	}
 	DWORD status;
-	if (!DeviceIoControl(hDrive, FSCTL_DISMOUNT_VOLUME,
-		NULL, 0, NULL, 0, &status, NULL))
-	{
-		printf("Failed to dismount drive\n");
-		printError();
-		CloseHandle(hDrive);
-		CloseHandle(hImage);
-		return 0;
-	}
 
 	// lock volume
 	if (!DeviceIoControl(hDrive, FSCTL_LOCK_VOLUME,
 		NULL, 0, NULL, 0, &status, NULL))
 	{
-		printf("Failed to lock drive\n");
+		std::printf("Failed to lock drive\n");
 		printError();
 		CloseHandle(hDrive);
 		CloseHandle(hImage);
 		return 0;
-		// error handling; not sure if retrying is useful
 	}
 	char buffer[4096];
 	unsigned long long written = 0;
 	DWORD temp, temp2;
 	int ret = 1;
-	printf("Writing image to disk...\n");
+	std::printf("Writing image to disk...\n");
 	while (written < li.QuadPart) {
 		DWORD toRead = min(sizeof(buffer), li.QuadPart - written);
 		if (!ReadFile(hImage, buffer, toRead, &temp, 0)) {
-			printf("Failed to read buffer from image file!\n");
+			std::printf("Failed to read buffer from image file!\n");
 			printError();
 			ret = 0;
 			goto cleanup;
 		}
 		if (!WriteFile(hDrive, buffer, temp, &temp2, 0) || temp2 != temp) {
-			printf("Failed to write buffer to the disk!\n");
+			std::printf("Failed to write buffer to the disk!\n");
 			printError();
 			ret = 0;
 			goto cleanup;
@@ -342,25 +332,82 @@ int burnDrive(std::string drive, std::string imagePath) {
 	if (!DeviceIoControl(hDrive, FSCTL_UNLOCK_VOLUME,
 		NULL, 0, NULL, 0, &status, NULL))
 	{
-		printf("Failed to unlock drive\n");
+		std::printf("Failed to unlock drive\n");
 		printError();
 		// error handling; not sure if retrying is useful
 	}
 	CloseHandle(hDrive);
 	return 1;
 }
+
+std::string queryDrive() {
+	DWORD drives = GetLogicalDrives();
+	char drivePath[32];
+	drivePath[1] = ':';
+	drivePath[2] = '\\';
+	drivePath[3] = '\0';
+	DWORD p = 1;
+	for (int i = 0; i < 31; i++) {
+		if (drives & (1 << i)) {
+			drivePath[0] = 'A' + i;
+			UINT driveType = GetDriveTypeA(drivePath);
+			switch (driveType) {
+			case DRIVE_UNKNOWN:
+				std::printf("%d. DRIVE_UNKNOWN: %s\n", i, drivePath);
+				break;
+			case DRIVE_REMOVABLE:
+				std::printf("%d. DRIVE_REMOVABLE: %s\n", i, drivePath);
+				break;
+			case DRIVE_FIXED:
+				std::printf("%d. DRIVE_FIXED: %s\n", i, drivePath);
+				break;
+			case DRIVE_REMOTE:
+				std::printf("%d. DRIVE_REMOTE: %s\n", i, drivePath);
+				break;
+			case DRIVE_CDROM:
+				std::printf("%d. DRIVE_CDROM: %s\n", i, drivePath);
+				break;
+			case DRIVE_RAMDISK:
+				std::printf("%d. DRIVE_RAMDISK: %s\n", i, drivePath);
+				break;
+			default:
+				std::printf("%d. DRIVE_UNKNOWN: %s\n", i, drivePath);
+				break;
+			}
+		}
+	}
+	int selected;
+	std::string str;
+	do {
+		std::printf("Select a drive (0-31): ");
+		std::getline(std::cin, str);
+		try {
+			selected = std::stoi(str);
+		}
+		catch (std::invalid_argument& e) {
+
+		}
+		catch (std::out_of_range& e) {
+
+		}
+	} while (!(drives & (1 << selected)));
+	char drive = 'A' + selected;
+	std::string path = "\\\\.\\";
+	path.push_back(drive);
+	path.push_back(':');
+	return path;
+}
+
 int main(int argc, char *argv[])
 {
-	printf("Disk Dump 1.0\n\n");
+	std::printf("Disk Dump 1.0\n\n");
 	std::string disk;
 	std::string dumpPath;
 	std::string burnPath;
-	bool formatFlag=false, dumpFlag=false, burnFlag=false;
+	bool formatFlag = false, dumpFlag = false, burnFlag = false;
 	if (argc <= 1) {
 		std::string flagsStr;
-		printf("Input disk path: ");
-		std::getline(std::cin, disk);
-		printf("Input flags (-dump *PATH_TO_DUMP* OR -format OR -burn *PATH_TO_ISO_IMAGE*): ");
+		std::printf("Input flags (-dump *PATH_TO_DUMP* OR -format OR -burn *PATH_TO_ISO_IMAGE*): ");
 		std::getline(std::cin, flagsStr);
 		if (flagsStr.find("-dump ") == 0) {
 			dumpPath = flagsStr.substr(6);
@@ -374,7 +421,7 @@ int main(int argc, char *argv[])
 			burnFlag = true;
 		}
 		else {
-			printf("Invalid flags\n");
+			std::printf("Invalid flags\n");
 			return 0;
 		}
 	}
@@ -403,17 +450,14 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	if (disk[disk.length() - 1] == '\\')
-		disk = disk.substr(0, disk.length() - 1);
-	else if (disk[disk.length() - 1] == '/')
-		disk = disk.substr(0, disk.length() - 1);
-	disk = "\\\\.\\" + disk;
+	disk = queryDrive();
+	std::cout << disk << std::endl;
 	if (formatFlag) {
 		if (formatDrive(disk)) {
 			printf("Disk was successfully formated!\n");
 		}
 		else {
-			printf("Disk was not formated!\n");
+			printf("Disk was not erased!\n");
 		}
 	}
 	else if (dumpFlag) {
@@ -432,7 +476,6 @@ int main(int argc, char *argv[])
 			printf("The image was not burned!\n");
 		}
 	}
-	getchar();
     return 0;
 }
 
