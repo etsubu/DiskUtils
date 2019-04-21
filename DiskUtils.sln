@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskDump", "DiskDump\DiskDump.vcxproj", "{98644531-51C9-4F00-B08C-ABA1D3483547}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiskUtils", "DiskUtils\DiskUtils.vcxproj", "{98644531-51C9-4F00-B08C-ABA1D3483547}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
